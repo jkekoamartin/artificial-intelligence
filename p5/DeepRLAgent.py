@@ -1,10 +1,15 @@
-import neurolab as nl
-import numpy as np
-from random import shuffle
+import random
 import tensorflow as tf
 
 
 # Code by James Martin and Hannah Johnson
+
+FINAL_EPSILON = 0.1     # ending/desired epsilon for training
+INITIAL_EPSILON = 1.0   # starting epsilon for training
+EXPLORE = 10000         # amount of steps before everything is updated
+OBSERVE = 500           # observes 500 sessions before training begins
+GAMMA = 0.95            # decay rate of past observations
+FRAME_PER_ACTION = 1
 
 
 # Tensorflow stuff is used by this agent
@@ -21,6 +26,7 @@ class DeepRLAgent(object):
         # note: using .n means we can only pass a Discrete type action space
         self.output_size = action_space.n
         self._batch_size = batch_size
+        self.time = 0
 
         # Tensorflow initializations
         self._saver = tf.train.Saver()
@@ -30,30 +36,62 @@ class DeepRLAgent(object):
         self._discount = tf.constant(discount)
         self._sess.run([tf.initialize_all_variables()])
 
-    # todo: need to implement
+
+    # saves data set after 1000 training sessions
     def save(self, filename):
-        print(filename)
+        self.saver = tf.train.Saver()
+        self.session = tf.InteractiveSession()
+        self.session.run(tf.initialize_all_variables())
 
-        # raise NotImplementedError('***Error: save to file  not implemented')
-        # YOUR CODE HERE: save trained model to file
 
-    # todo: need to implement
+    # loads old data/network
     def load(self, filename):
-        raise NotImplementedError('***Error: load from file not implemented')
-        # YOUR CODE HERE: load trained model from file
+        checkpoint = tf.train.get_checkpoint_state("models")
+        if checkpoint and checkpoint.model_checkpoint_path:
+            self.saver.restore(self.session, checkpoint.model_checkpoint_path)
+            print("Successfully loaded:", checkpoint.model_checkpoint_path)
+        else:
+            print("Could not find old network weights")
 
-    # todo: need to implement
     def reset(self):
-        raise NotImplementedError('***Error: load from file not implemented')
-        # YOUR CODE HERE: load trained model from file
+        self.load("model")
+        self.epsilon = INITIAL_EPSILON
 
-    # todo: need to implement
+        # TODO: still directly from refRL, i needa figure out what this is about
+        self.stateInputT, self.QValueT, self.W_conv1T, self.b_conv1T, self.W_conv2T, self.b_conv2T, self.W_conv3T, self.b_conv3T, self.W_fc1T, self.b_fc1T, self.W_fc2T, self.b_fc2T = self.createQNetwork()
+
+        self.copyTargetQNetworkOperation = [self.W_conv1T.assign(self.W_conv1), self.b_conv1T.assign(self.b_conv1),
+                                            self.W_conv2T.assign(self.W_conv2), self.b_conv2T.assign(self.b_conv2),
+                                            self.W_conv3T.assign(self.W_conv3), self.b_conv3T.assign(self.b_conv3),
+                                            self.W_fc1T.assign(self.W_fc1), self.b_fc1T.assign(self.b_fc1),
+                                            self.W_fc2T.assign(self.W_fc2), self.b_fc2T.assign(self.b_fc2)]
+
+        self.createTrainingMethod()
+
+    # chooses best action and returns it
     def act(self, observation):
-        raise NotImplementedError('***Error: load from file not implemented')
-        # YOUR CODE HERE: pick actual best action
+        QVal = self.QValueT.eval(feed_dict={self.stateInputT: [self.currentState]})[0]
+        action = tf.zeros(self.actions)
+        index = 0
+        if self.time % FRAME_PER_ACTION == 0:
+            if random.random() <= self.epsilon:
+                index = random.randrange(self.actions)
+                action[index] = 1
+            else:
+                index = tf.argmax(QVal)
+                action[index] = 1
+        else:
+            action[0] = 1  # don't do anything
+
+        # update epsilon after 10000 steps
+        if self.epsilon > FINAL_EPSILON and self.time > OBSERVE:
+            self.epsilon -= (INITIAL_EPSILON - FINAL_EPSILON)/EXPLORE
+
+        return action
 
     # todo: need to implement
     def update(self, observation, action, new_observation, reward):
         raise NotImplementedError('***Error: load from file not implemented')
+
         # YOUR CODE HERE: pick actual best action
         # Note: you may need to change the function signature as needed by your training algorithm

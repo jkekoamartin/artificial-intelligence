@@ -13,7 +13,6 @@ import gym
 #################################################
 def train():
     # this processes frame, runs the learning agent, and saves the model
-    # print("train")
 
     env = gym.make('SpaceInvaders-v0')
     env.reset()
@@ -22,16 +21,18 @@ def train():
     agent = DeepRLAgent.DeepRLAgent(actions)
 
     action = 0  # do nothing
-    observation0, reward, terminal, info = env.step(action)
-    print("Before processing: " + str(np.array(observation0).shape))
-    plt.imshow(np.array(observation0))
+    observation, reward, terminal, info = env.step(action)
+    
+    # this shows how are preprocessing changes the first frame
+    print("Before processing: " + str(np.array(observation).shape))
+    plt.imshow(np.array(observation))
     plt.show()
-    observation0 = preprocess(observation0)
-    print("After processing: " + str(np.array(observation0).shape))
-    plt.imshow(np.array(np.squeeze(observation0)))
+    observation = preprocess(observation)
+    print("After processing: " + str(np.array(observation).shape))
+    plt.imshow(np.array(np.squeeze(observation)))
     plt.show()
 
-    agent.setInitState(observation0)
+    agent.setInitState(observation)
     agent.currentState = np.squeeze(agent.currentState)
 
     while True:
@@ -48,8 +49,6 @@ def train():
 
 def test():
     # this loads the model, and uses an agent to run the game
-
-
 
     env = gym.make('SpaceInvaders-v0')
     env.reset()
@@ -68,17 +67,26 @@ def test():
     plays = 0
     test_flag = True
 
+    average_score = []
+    total_score = 0
     while plays < 10:
         action = agent.getAction()
         max_action = np.argmax(np.array(action))
         if terminal:
+            print(total_score)
+            average_score.append(total_score)
+            total_score = 0
             env.reset()
+
             plays += 1
 
         next_observation, reward, terminal, info = env.step(max_action)
+        total_score += reward
         env.render()
         next_observation = preprocess(next_observation)
         agent.set_next_state(next_observation, action, reward, terminal, test_flag)
+    print("Average score of 10 games is: ")
+    print(sum(average_score) / len(average_score))
 
 
 #################################################

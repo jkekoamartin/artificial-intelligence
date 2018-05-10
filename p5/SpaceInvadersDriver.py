@@ -2,11 +2,10 @@ import matplotlib.pyplot as plt
 
 import cv2
 import sys
-from p5 import refRL
+from p5 import DeepRLAgent
 import numpy as np
 
 import gym
-
 
 
 #################################################
@@ -19,12 +18,11 @@ def train():
     env = gym.make('SpaceInvaders-v0')
     env.reset()
     actions = env.action_space.n
-    print(actions)
 
-    brain = refRL.BrainDQN(actions)
+    agent = DeepRLAgent.DeepRLAgent(actions)
 
-    action0 = 0  # do nothing
-    observation0, reward0, terminal, info = env.step(action0)
+    action = 0  # do nothing
+    observation0, reward, terminal, info = env.step(action)
     print("Before processing: " + str(np.array(observation0).shape))
     plt.imshow(np.array(observation0))
     plt.show()
@@ -33,49 +31,54 @@ def train():
     plt.imshow(np.array(np.squeeze(observation0)))
     plt.show()
 
-    brain.setInitState(observation0)
-    brain.currentState = np.squeeze(brain.currentState)
+    agent.setInitState(observation0)
+    agent.currentState = np.squeeze(agent.currentState)
 
     while True:
-        action = brain.getAction()
-        actionmax = np.argmax(np.array(action))
+        action = agent.getAction()
+        max_action = np.argmax(np.array(action))
         if terminal:
-            nextObservation = env.reset()
+            env.reset()
 
-        nextObservation, reward, terminal, info = env.step(actionmax)
+        next_observation, reward, terminal, info = env.step(max_action)
         env.render()
-        nextObservation = preprocess(nextObservation)
-        brain.setPerception(nextObservation, action, reward, terminal)
-    # for _ in range(1000):
-    #     env.render()
-    #     action = env.action_space.sample()  # your agent here (this takes random actions)
-    #     print(action)
-    #     observation, reward, done, info = env.step([0, 0, 0])
-    #     for each in observation:
-    #         print(each)
-
-    # testing processing
-    ##########
-    # action0 = 0  # do nothing
-    # observation0, reward0, terminal, info = env.step(action0)
-    # print("Before processing: " + str(np.array(observation0).shape))
-    # plt.imshow(np.array(observation0))
-    # plt.show()
-    # observation0 = _p_process(observation0)
-    # print("After processing: " + str(np.array(observation0).shape))
-    # plt.imshow(np.array(np.squeeze(observation0)))
-    # plt.show()
-    ##########
-
-
-
-
+        next_observation = preprocess(next_observation)
+        agent.set_next_state(next_observation, action, reward, terminal)
 
 
 def test():
     # this loads the model, and uses an agent to run the game
 
-    pass
+
+
+    env = gym.make('SpaceInvaders-v0')
+    env.reset()
+    actions = env.action_space.n
+
+    agent = DeepRLAgent.DeepRLAgent(actions)
+
+    action = 0  # do nothing
+    observation, reward, terminal, info = env.step(action)
+
+    observation = preprocess(observation)
+
+    agent.setInitState(observation)
+    agent.currentState = np.squeeze(agent.currentState)
+
+    plays = 0
+    test_flag = True
+
+    while plays < 10:
+        action = agent.getAction()
+        max_action = np.argmax(np.array(action))
+        if terminal:
+            env.reset()
+            plays += 1
+
+        next_observation, reward, terminal, info = env.step(max_action)
+        env.render()
+        next_observation = preprocess(next_observation)
+        agent.set_next_state(next_observation, action, reward, terminal, test_flag)
 
 
 #################################################
@@ -101,11 +104,13 @@ if __name__ == "__main__":
     # for ease of development, this runs train when there are no args
 
     if len(sys.argv) is 1:
-        train()
+        # if no argument, just train
+        test()
     else:
         error = "Invalid arguments passed. Please input \"-train\" or \"-test\" "
         if len(sys.argv) is 2:
             if sys.argv[1] == "-test":
+                print("test")
                 test()
             elif sys.argv[1] == "-train":
                 train()

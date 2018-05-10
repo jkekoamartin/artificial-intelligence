@@ -21,7 +21,7 @@ class BrainDQN:
         # init replay memory
         self.replayMemory = deque()
         # init some parameters
-        self.timeStep = 0
+        self.time = 0
         self.epsilon = INITIAL_EPSILON
         self.actions = actions
         # init Q network
@@ -87,8 +87,6 @@ class BrainDQN:
 
         return stateInput, QValue, W_conv1, b_conv1, W_conv2, b_conv2, W_conv3, b_conv3, W_fc1, b_fc1, W_fc2, b_fc2
 
-    def copyTargetQNetwork(self):
-        self.session.run(self.copyTargetQNetworkOperation)
 
     def createTrainingMethod(self):
         self.actionInput = tf.placeholder("float", [None, self.actions])
@@ -97,7 +95,7 @@ class BrainDQN:
         self.cost = tf.reduce_mean(tf.square(self.yInput - Q_Action))
         self.trainStep = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6).minimize(self.cost)
 
-    def trainQNetwork(self):
+    def train(self):
 
         # Step 1: obtain random minibatch from replay memory
         minibatch = random.sample(self.replayMemory, BATCH_SIZE)
@@ -123,40 +121,43 @@ class BrainDQN:
         })
 
         # save network every 1000 iteration
-        if self.timeStep % 100 == 0:
-            self.saver.save(self.session, 'saved_networks/' + 'network' + '-dqn', global_step=self.timeStep)
+        if self.time % 1000 == 0:
+            self.save()
 
-        if self.timeStep % UPDATE_TIME == 0:
-            self.copyTargetQNetwork()
+        if self.time % UPDATE_TIME == 0:
+            self.session.run(self.copyTargetQNetwork())
 
     def setPerception(self, nextObservation, action, reward, terminal):
         newState = np.append(nextObservation, self.currentState[:, :, 1:], axis=2)
         self.replayMemory.append((self.currentState, action, reward, newState, terminal))
         if len(self.replayMemory) > REPLAY_MEMORY:
             self.replayMemory.popleft()
-        if self.timeStep > OBSERVE:
+        if self.time > OBSERVE:
             # Train the network
-            self.trainQNetwork()
+            self.train()
 
         # print info
         state = ""
-        if self.timeStep <= OBSERVE:
+        if self.time <= OBSERVE:
             state = "observe"
-        elif self.timeStep > OBSERVE and self.timeStep <= OBSERVE + EXPLORE:
+        elif self.time > OBSERVE and self.time <= OBSERVE + EXPLORE:
             state = "explore"
         else:
             state = "train"
 
-        print("TIMESTEP", self.timeStep, "/ STATE", state,"/ EPSILON", self.epsilon)
+        print("TIME", self.time, "/ STATE", state, "/ EPSILON", self.epsilon)
 
         self.currentState = newState
-        self.timeStep += 1
+        self.time += 1
+
+    def save(self):
+        self.saver.save(self.session, 'saved_networks/' + 'network' + '-dqn', global_step=self.time)
 
     def getAction(self):
         QValue = self.QValue.eval(feed_dict={self.stateInput: [self.currentState]})[0]
         action = np.zeros(self.actions)
         action_index = 0
-        if self.timeStep % FRAME_PER_ACTION == 0:
+        if self.time % FRAME_PER_ACTION == 0:
             if random.random() <= self.epsilon:
                 action_index = random.randrange(self.actions)
                 action[action_index] = 1
@@ -167,7 +168,7 @@ class BrainDQN:
             action[0] = 1  # do nothing
 
         # change episilon
-        if self.epsilon > FINAL_EPSILON and self.timeStep > OBSERVE:
+        if self.epsilon > FINAL_EPSILON and self.time > OBSERVE:
             self.epsilon -= (INITIAL_EPSILON - FINAL_EPSILON) / EXPLORE
 
         return action

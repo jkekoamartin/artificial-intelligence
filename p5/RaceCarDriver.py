@@ -8,7 +8,6 @@ import numpy as np
 import gym
 
 
-
 #################################################
 # public methods
 #################################################
@@ -46,30 +45,6 @@ def train():
         env.render()
         nextObservation = preprocess(nextObservation)
         brain.setPerception(nextObservation, action, reward, terminal)
-    # for _ in range(1000):
-    #     env.render()
-    #     action = env.action_space.sample()  # your agent here (this takes random actions)
-    #     print(action)
-    #     observation, reward, done, info = env.step([0, 0, 0])
-    #     for each in observation:
-    #         print(each)
-
-    # testing processing
-    ##########
-    # action0 = 0  # do nothing
-    # observation0, reward0, terminal, info = env.step(action0)
-    # print("Before processing: " + str(np.array(observation0).shape))
-    # plt.imshow(np.array(observation0))
-    # plt.show()
-    # observation0 = _p_process(observation0)
-    # print("After processing: " + str(np.array(observation0).shape))
-    # plt.imshow(np.array(np.squeeze(observation0)))
-    # plt.show()
-    ##########
-
-
-
-
 
 
 def test():
@@ -94,31 +69,6 @@ def preprocess(observation):
     ret, observation = cv2.threshold(observation, 1, 255, cv2.THRESH_BINARY)
     return np.reshape(observation, (84, 84, 1))
 
-# env = gym.make('CarRacing-v0')
-# #Details about environment: https://github.com/openai/gym/blob/master/gym/envs/box2d/car_racing.py
-# env.reset()
-# total_reward = 1000
-# for i_episode in range(2):
-#     observation = env.reset()
-#     for t in range(1000000):
-#         env.render()
-#
-#         #action = env.action_space.sample()
-#         #self.action_space = spaces.Box( np.array([-1,0,0]), np.array([+1,+1,+1]))  # steer, gas, brake
-#         #self.observation_space = spaces.Box(low=0, high=255, shape=(STATE_H, STATE_W, 3), dtype=np.uint8)
-#         #print(action)
-#         action=[0,1,0]  #forward, gas, no break
-#         observation, reward, done, info = env.step(action)
-#         print (reward, done, info)
-#         total_reward += reward
-#
-#         #NOTE: Need to detect if off-the-road!!! car will continue to "drive" on grass
-#         if done:
-#             print("Episode finished after {} timesteps".format(t+1))
-#             env.reset()
-#             total_reward += -1000
-#             break
-# env.close()
 
 if __name__ == "__main__":
     # check correct length args

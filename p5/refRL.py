@@ -2,12 +2,11 @@ import tensorflow as tf
 import numpy as np
 import random
 from collections import deque
-import tensorflow.contrib.slim as slim
 
 # Hyper Parameters:
 FRAME_PER_ACTION = 1
 GAMMA = 0.95  # decay rate of past observations
-OBSERVE = 10000.  # timesteps to observe before training
+OBSERVE = 500.  # timesteps to observe before training
 EXPLORE = 1000000.  # frames over which to anneal epsilon
 FINAL_EPSILON = 0.1  # 0.001 # final value of epsilon
 INITIAL_EPSILON = 1.0  # 0.01 # starting value of epsilon
@@ -123,9 +122,8 @@ class BrainDQN:
             self.stateInput: state_batch
         })
 
-        # save network every 100000 iteration
-        if self.timeStep > 1000 and self.timeStep % 100 == 0:
-            print("lol")
+        # save network every 1000 iteration
+        if self.timeStep % 100 == 0:
             self.saver.save(self.session, 'saved_networks/' + 'network' + '-dqn', global_step=self.timeStep)
 
         if self.timeStep % UPDATE_TIME == 0:
@@ -149,7 +147,7 @@ class BrainDQN:
         else:
             state = "train"
 
-        print("TIMESTEP", self.timeStep, "/ STATE", state, "/ EPSILON", self.epsilon)
+        print("TIMESTEP", self.timeStep, "/ STATE", state,"/ EPSILON", self.epsilon)
 
         self.currentState = newState
         self.timeStep += 1
@@ -190,3 +188,4 @@ class BrainDQN:
 
     def max_pool_2x2(self, x):
         return tf.nn.max_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="SAME")
+
